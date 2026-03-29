@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": "Sample configuration for Agent TARS CLI. Save as tarko.config.json or pass via --config flag.",
+
+  "model": {
+    "provider": "volcengine",
+    "id": "gpt-4o",
+    "apiKey": "",
+    "baseURL": "",
+    "displayName": "GPT-4o",
+    "headers": {},
+    "params": {}
+  },
+
+  "thinking": {
+    "type": "disabled",
+    "budgetTokens": 4096
+  },
+
+  "maxTokens": 8192,
+  "maxIterations": 1000,
+  "logLevel": "INFO",
+
+  "instructions": "",
+
+  "tool": {
+    "include": [],
+    "exclude": []
+  },
+  "toolCallEngine": "native",
+
+  "browser": {
+    "type": "local",
+    "headless": false,
+    "control": "hybrid",
+    "cdpEndpoint": ""
+  },
+
+  "search": {
+    "provider": "browser_search",
+    "count": 10,
+    "apiKey": "",
+    "baseUrl": "",
+    "browserSearch": {
+      "engine": "google",
+      "needVisitedUrls": false
+    }
+  },
+
+  "planner": {
+    "enable": false,
+    "maxSteps": 3,
+    "planningPrompt": ""
+  },
+
+  "context": {
+    "maxImagesCount": 20
+  },
+
+  "mcpServers": {
+    "example-server": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-server"],
+      "env": {}
+    },
+    "remote-server": {
+      "url": "http://localhost:3001/sse",
+      "headers": {}
+    }
+  },
+  "mcpServer": {
+    "include": [],
+    "exclude": []
+  },
+  "mcpImpl": "in-memory",
+  "defaultConnectionTimeout": 60,
+
+  "workspace": "",
+
+  "snapshot": {
+    "enable": false,
+    "storageDirectory": ""
+  },
+
+  "experimental": {
+    "dumpMessageHistory": false
+  },
+
+  "metric": {
+    "enable": false
+  },
+
+  "server": {
+    "port": 8888,
+    "exclusive": false,
+    "storage": {
+      "type": "sqlite",
+      "baseDir": "",
+      "dbName": ""
+    },
+    "tenant": {
+      "mode": "single",
+      "auth": false
+    }
+  },
+
+  "share": {
+    "provider": ""
+  },
+
+  "webui": {
+    "logo": "",
+    "title": "",
+    "subtitle": "",
+    "welcomeTitle": "",
+    "welcomePrompts": [],
+    "welcomeCards": [
+      {
+        "title": "Example Task",
+        "category": "General",
+        "prompt": "Search for the latest news about AI agents"
+      }
+    ],
+    "enableContextualSelector": false,
+    "guiAgent": {
+      "renderGUIAction": false
+    },
+    "layout": {
+      "defaultLayout": "",
+      "enableLayoutSwitchButton": false
+    },
+    "debug": {
+      "enableEventStreamViewer": false
+    }
+  }
+}

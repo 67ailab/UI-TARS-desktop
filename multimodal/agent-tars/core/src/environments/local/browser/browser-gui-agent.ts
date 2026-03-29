@@ -209,14 +209,14 @@ wait()                                         - Wait 5 seconds and take a scree
     // Compress the image
     const imageCompressor = new ImageCompressor({
       quality: 80,
-      format: 'webp',
+      format: 'jpeg',
     });
 
     const compressedBuffer = await imageCompressor.compressToBuffer(originalBuffer);
     const compressedSize = compressedBuffer.length;
 
     // Convert compressed buffer to base64
-    const compressedBase64 = `data:image/webp;base64,${compressedBuffer.toString('base64')}`;
+    const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
 
     // Get current page URL
     let currentUrl: string | undefined;
@@ -293,8 +293,8 @@ wait()                                         - Wait 5 seconds and take a scree
         compressed: formatBytes(compressedSize),
         ratio: `${compressionRatio.toFixed(2)}x (${compressionPercentage}% smaller)`,
         dimensions: `${this.screenWidth}x${this.screenHeight}`,
-        format: 'webp',
-        quality: 20,
+        format: 'jpeg',
+        quality: 80,
         time: `${screenshotTime} ms`,
         url: currentUrl,
       });

@@ -3,6 +3,7 @@
   "name": "agent-tars",
   "version": "0.3.0",
   "description": "Agent TARS",
+  "packageManager": "pnpm@9.10.0",
   "scripts": {
     "bootstrap": "pnpm --filter \"./tarko/**\" build && pnpm --filter \"./gui-agent/**\" build && pnpm --filter \"./agent-tars/**\" build && pnpm --filter \"./omni-tars/**\" build",
     "docs": "doctoc --title '## Table of Contents' README.md",

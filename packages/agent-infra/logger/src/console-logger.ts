@@ -25,6 +25,23 @@ export class ConsoleLogger extends BaseLogger {
   }
 
   /**
+   * Generates a formatted timestamp string for log messages
+   *
+   * @returns Timestamp string in [YYYY-MM-DD HH:MM:SS.mmm] format, colorized gray in Node.js
+   * @private
+   */
+  private getTimestamp(): string {
+    const now = new Date();
+    const ts = `[${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}]`;
+    const isBrowser =
+      typeof window !== 'undefined' && typeof window.document !== 'undefined';
+    if (isBrowser) {
+      return ts;
+    }
+    return colorize(ts, 'gray');
+  }
+
+  /**
    * Applies color to the prefix based on log type
    *
    * @param prefix - The prefix string to colorize
@@ -76,7 +93,7 @@ export class ConsoleLogger extends BaseLogger {
    */
   log(...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
-      console.log(this.colorPrefix(this.prefix), ...args);
+      console.log(this.getTimestamp(), this.colorPrefix(this.prefix), ...args);
     }
   }
 
@@ -91,15 +108,17 @@ export class ConsoleLogger extends BaseLogger {
       const prefix = this.colorPrefix(this.prefix, 'info');
 
       if (typeof window !== 'undefined' && this.lastPrefixColor) {
+        const ts = this.getTimestamp();
         console.log(
-          `%c${prefix}%c`,
+          `%c${ts} %c${prefix}%c`,
+          'color: gray',
           `color: ${CSS_COLOR_VALUES[this.lastPrefixColor]}; font-weight: bold`,
           'color: inherit',
           ...args,
         );
         this.lastPrefixColor = null;
       } else {
-        console.log(`${prefix}`, ...args);
+        console.log(this.getTimestamp(), `${prefix}`, ...args);
       }
     }
   }
@@ -115,15 +134,17 @@ export class ConsoleLogger extends BaseLogger {
       const prefix = this.colorPrefix(this.prefix, 'warn');
 
       if (typeof window !== 'undefined' && this.lastPrefixColor) {
+        const ts = this.getTimestamp();
         console.warn(
-          `%c${prefix}%c`,
+          `%c${ts} %c${prefix}%c`,
+          'color: gray',
           `color: ${CSS_COLOR_VALUES[this.lastPrefixColor]}; font-weight: bold`,
           'color: inherit',
           ...args,
         );
         this.lastPrefixColor = null;
       } else {
-        console.warn(`${prefix}`, ...args);
+        console.warn(this.getTimestamp(), `${prefix}`, ...args);
       }
     }
   }
@@ -139,15 +160,17 @@ export class ConsoleLogger extends BaseLogger {
       const prefix = this.colorPrefix(this.prefix, 'error');
 
       if (typeof window !== 'undefined' && this.lastPrefixColor) {
+        const ts = this.getTimestamp();
         console.error(
-          `%c${prefix}%c`,
+          `%c${ts} %c${prefix}%c`,
+          'color: gray',
           `color: ${CSS_COLOR_VALUES[this.lastPrefixColor]}; font-weight: bold`,
           'color: inherit',
           ...args,
         );
         this.lastPrefixColor = null;
       } else {
-        console.error(`${prefix}`, ...args);
+        console.error(this.getTimestamp(), `${prefix}`, ...args);
       }
     }
   }
@@ -163,14 +186,16 @@ export class ConsoleLogger extends BaseLogger {
       const prefix = this.colorPrefix(this.prefix, 'success');
 
       if (typeof window !== 'undefined' && this.lastPrefixColor) {
+        const ts = this.getTimestamp();
         console.log(
-          `%c${prefix}%c ${message}`,
+          `%c${ts} %c${prefix}%c ${message}`,
+          'color: gray',
           `color: ${CSS_COLOR_VALUES[this.lastPrefixColor]}; font-weight: bold`,
           'color: inherit',
         );
         this.lastPrefixColor = null;
       } else {
-        console.log(`${prefix} ${message}`);
+        console.log(this.getTimestamp(), `${prefix} ${message}`);
       }
     }
   }
@@ -186,15 +211,17 @@ export class ConsoleLogger extends BaseLogger {
       const prefix = this.colorPrefix(this.prefix, 'debug');
 
       if (typeof window !== 'undefined' && this.lastPrefixColor) {
+        const ts = this.getTimestamp();
         console.debug(
-          `%c${prefix}%c`,
+          `%c${ts} %c${prefix}%c`,
+          'color: gray',
           `color: ${CSS_COLOR_VALUES[this.lastPrefixColor]}; font-weight: bold`,
           'color: inherit',
           ...args,
         );
         this.lastPrefixColor = null;
       } else {
-        console.debug(`${prefix}`, ...args);
+        console.debug(this.getTimestamp(), `${prefix}`, ...args);
       }
     }
   }

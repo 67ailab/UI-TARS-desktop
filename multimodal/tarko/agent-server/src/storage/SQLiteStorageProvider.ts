@@ -53,12 +53,13 @@ interface ExistsResult {
 export class SQLiteStorageProvider implements StorageProvider {
   private db: DatabaseSync;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
   public readonly dbPath: string;
 
   constructor(config: SqliteAgentStorageImplementation) {
     // Default to the user's home directory
-    const baseDir = getGlobalStorageDirectory(config.baseDir);
-    const dbName = config.dbName ?? TARKO_CONSTANTS.SESSION_DATA_DB_NAME;
+    const baseDir = getGlobalStorageDirectory(config.baseDir || undefined);
+    const dbName = config.dbName || TARKO_CONSTANTS.SESSION_DATA_DB_NAME;
 
     // Create the directory if it doesn't exist
     if (!fs.existsSync(baseDir)) {
@@ -691,11 +692,20 @@ export class SQLiteStorageProvider implements StorageProvider {
     if (this.db && this.db.isOpen) {
       this.db.close();
     }
+    this.initialized = false;
+    this.initPromise = null;
   }
 
   private async ensureInitialized(): Promise<void> {
-    if (!this.initialized) {
-      await this.initialize();
+    if (this.initialized) {
+      return;
     }
+    if (!this.initPromise) {
+      this.initPromise = this.initialize().catch((err) => {
+        this.initPromise = null;
+        throw err;
+      });
+    }
+    await this.initPromise;
   }
 }
