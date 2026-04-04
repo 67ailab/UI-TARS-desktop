@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Viewer</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333; --bg4: #252d3a;
+    --border: #30363d; --text: #e6edf3; --text2: #8b949e; --text3: #6e7681;
+    --accent: #58a6ff; --accent2: #3b82f6; --green: #3fb950; --yellow: #d29922;
+    --red: #f85149; --purple: #bc8cff; --cyan: #39d2c0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+  /* Top bar */
+  .topbar { display: flex; align-items: center; height: 44px; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 16px; gap: 12px; flex-shrink: 0; }
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text2); }
+  .file-input-wrap { display: flex; align-items: center; gap: 8px; }
+  .file-input-wrap label { padding: 5px 14px; background: var(--accent2); color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .file-input-wrap label:hover { background: #4b93f7; }
+  #fileInput { display: none; }
+  .filename { font-size: 13px; color: var(--accent); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .url-input-wrap { display: flex; align-items: center; gap: 6px; }
+  .url-input-wrap input { width: 320px; height: 28px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; font-size: 12px; color: var(--text); outline: none; }
+  .url-input-wrap input:focus { border-color: var(--accent); }
+  .url-input-wrap input::placeholder { color: var(--text3); }
+  .url-input-wrap button { padding: 5px 12px; background: var(--accent2); color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .url-input-wrap button:hover { background: #4b93f7; }
+  .url-input-wrap button:disabled { opacity: .5; cursor: default; }
+  .divider { width: 1px; height: 20px; background: var(--border); }
+  .session-stats { margin-left: auto; font-size: 12px; color: var(--text3); display: flex; gap: 14px; }
+  .session-stats span { white-space: nowrap; }
+
+  /* Main layout */
+  .main { display: flex; height: calc(100vh - 44px); }
+
+  /* Left panel: event list */
+  .left-panel { width: 440px; min-width: 340px; max-width: 50vw; overflow-y: auto; border-right: 1px solid var(--border); padding: 12px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
+  .left-panel::-webkit-scrollbar { width: 6px; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  /* Event card */
+  .event-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s; flex-shrink: 0; }
+  .event-card:hover { border-color: var(--accent); }
+  .event-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), inset 0 0 0 1px rgba(88,166,255,.15); }
+  .event-card.has-image { border-left: 3px solid var(--cyan); }
+
+  .event-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .event-num { font-size: 12px; font-weight: 700; color: var(--accent); }
+  .event-type-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  .badge-user { background: #1a3a2a; color: var(--green); }
+  .badge-thinking { background: #2a1f3a; color: var(--purple); }
+  .badge-assistant { background: #1a2a3a; color: var(--accent); }
+  .badge-tool-call { background: #2a2a1a; color: var(--yellow); }
+  .badge-tool-result { background: #1a2a2a; color: var(--cyan); }
+  .badge-env { background: #1a2533; color: #79c0ff; }
+  .badge-run { background: #1c1c1c; color: var(--text3); }
+  .event-elapsed { font-size: 11px; color: var(--green); background: rgba(63,185,80,.12); padding: 1px 7px; border-radius: 4px; margin-left: auto; white-space: nowrap; }
+  .event-time { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+  .event-body { font-size: 13px; line-height: 1.55; color: var(--text); }
+  .event-body p { margin-bottom: 6px; }
+  .event-body .content-text { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; max-height: 200px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
+  .event-body .content-text::-webkit-scrollbar { width: 4px; }
+  .event-body .content-text::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  /* Sub-cards inside events */
+  .sub-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+  .sub-card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .sub-card-icon { font-size: 14px; }
+  .sub-card-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+  .sub-card-right { margin-left: auto; font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; }
+  .sub-card-right .check { color: var(--green); }
+  .sub-card-body { font-size: 12px; color: var(--text2); white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; max-height: 120px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
+  .sub-card-body::-webkit-scrollbar { width: 4px; }
+  .sub-card-body::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  .tool-name { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--cyan); }
+  .tool-args { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--text3); word-break: break-all; overflow-wrap: anywhere; }
+  .tool-action-label { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .tool-action-label .action-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .tool-action-detail { font-size: 12px; color: var(--text2); margin-top: 4px; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; max-height: 100px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
+  .tool-action-detail::-webkit-scrollbar { width: 4px; }
+  .tool-action-detail::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  /* Right panel: image viewer */
+  .right-panel { flex: 1; display: flex; flex-direction: column; background: var(--bg); min-width: 0; }
+  .right-panel.empty { align-items: center; justify-content: center; }
+  .empty-msg { color: var(--text3); font-size: 14px; text-align: center; }
+  .empty-msg .icon { font-size: 48px; margin-bottom: 12px; display: block; }
+
+  /* Browser chrome */
+  .browser-chrome { flex-shrink: 0; background: var(--bg2); border-bottom: 1px solid var(--border); }
+  .browser-header { display: flex; align-items: center; height: 40px; padding: 0 14px; gap: 10px; }
+  .browser-icon { font-size: 16px; }
+  .browser-label { font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+  .browser-time { font-size: 12px; color: var(--text3); white-space: nowrap; }
+  .browser-url-bar { display: flex; align-items: center; height: 32px; margin: 0 14px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; gap: 6px; min-width: 0; }
+  .url-lock { font-size: 11px; color: var(--green); flex-shrink: 0; }
+  .url-text { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+  /* Image area */
+  .image-area { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 8px; position: relative; min-height: 0; }
+  .image-area img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 24px rgba(0,0,0,.5); }
+
+  /* Details panel below image */
+  .details-panel { flex-shrink: 0; max-height: 200px; overflow-y: auto; background: var(--bg2); border-top: 1px solid var(--border); padding: 14px 16px; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
+  .details-panel::-webkit-scrollbar { width: 5px; }
+  .details-panel::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  .detail-section { margin-bottom: 10px; }
+  .detail-section:last-child { margin-bottom: 0; }
+  .detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text3); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .detail-label .icon { font-size: 14px; }
+  .detail-content { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
+
+  /* Navigator */
+  .navigator { flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 16px; height: 48px; background: var(--bg2); border-top: 1px solid var(--border); }
+  .nav-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: background .15s, border-color .15s; }
+  .nav-btn:hover:not(:disabled) { background: var(--bg4); border-color: var(--accent); }
+  .nav-btn:disabled { opacity: .3; cursor: default; }
+  .nav-counter { font-size: 13px; color: var(--text2); min-width: 60px; text-align: center; }
+
+  /* Markdown-ish rendering */
+  .md h2 { font-size: 14px; font-weight: 700; margin: 8px 0 4px; color: var(--accent); }
+  .md ul, .md ol { padding-left: 18px; margin: 4px 0; }
+  .md li { margin: 2px 0; }
+  .md strong { color: var(--text); }
+  .md code { background: var(--bg4); padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  /* Resize handle */
+  .resize-handle { width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; transition: background .15s; }
+  .resize-handle:hover, .resize-handle.active { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">🔍 Session Viewer</span>
+  <div class="file-input-wrap">
+    <label for="fileInput">Open File</label>
+    <input type="file" id="fileInput" accept=".json">
+    <span class="filename" id="fileName">No file loaded</span>
+  </div>
+  <span class="divider"></span>
+  <div class="url-input-wrap">
+    <input type="text" id="urlInput" placeholder="Enter JSON URL or session API endpoint…">
+    <button id="urlLoadBtn">Load URL</button>
+  </div>
+  <div class="session-stats" id="sessionStats"></div>
+</div>
+
+<div class="main">
+  <div class="left-panel" id="eventList"></div>
+  <div class="resize-handle" id="resizeHandle"></div>
+  <div class="right-panel empty" id="rightPanel">
+    <div class="empty-msg">
+      <span class="icon">📂</span>
+      Load a session JSON file or URL to begin
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let events = [], images = [], currentImageIdx = -1, activeEventIdx = -1;
+
+// ── File loading ──
+$('#fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $('#fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      events = data.events || data;
+      processEvents();
+    } catch(err) { alert('Invalid JSON: ' + err.message); }
+  };
+  reader.readAsText(file);
+});
+
+// ── URL loading ──
+async function loadFromUrl(url) {
+  if (!url) return;
+  const btn = $('#urlLoadBtn');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+    const data = await resp.json();
+    events = data.events || data;
+    // Show source in filename area
+    const short = url.length > 60 ? '…' + url.slice(-57) : url;
+    $('#fileName').textContent = short;
+    $('#fileName').title = url;
+    processEvents();
+  } catch(err) {
+    alert('Failed to load URL: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load URL';
+  }
+}
+
+$('#urlLoadBtn').addEventListener('click', () => loadFromUrl($('#urlInput').value.trim()));
+$('#urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadFromUrl($('#urlInput').value.trim()); });
+
+// Auto-load from ?url= query parameter
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get('url');
+  if (urlParam) {
+    $('#urlInput').value = urlParam;
+    loadFromUrl(urlParam);
+  }
+})();
+
+function processEvents() {
+  // Collect images: { eventIdx, url, imgSrc, timestamp }
+  images = [];
+  const startTs = events[0]?.timestamp || 0;
+  events.forEach((ev, i) => {
+    ev._idx = i;
+    ev._elapsed = ev.timestamp - startTs;
+    if (ev.type === 'environment_input' && Array.isArray(ev.content)) {
+      ev.content.forEach(c => {
+        if (c.type === 'image_url' && c.image_url?.url) {
+          images.push({ eventIdx: i, url: ev.metadata?.url || '', imgSrc: c.image_url.url, timestamp: ev.timestamp });
+        }
+      });
+    }
+  });
+
+  // Stats
+  const dur = events.length > 1 ? ((events[events.length-1].timestamp - startTs)/1000).toFixed(1) : 0;
+  $('#sessionStats').innerHTML = `<span>${events.length} events</span><span>${images.length} screenshots</span><span>${dur}s total</span>`;
+
+  renderEventList();
+  if (images.length > 0) selectImage(0); else showEmptyRight();
+}
+
+// ── Render event list ──
+function renderEventList() {
+  const list = $('#eventList');
+  list.innerHTML = '';
+  const startTs = events[0]?.timestamp || 0;
+
+  events.forEach((ev, i) => {
+    const card = document.createElement('div');
+    card.className = 'event-card' + (hasImage(i) ? ' has-image' : '');
+    card.dataset.idx = i;
+    card.innerHTML = buildCardHTML(ev, i, startTs);
+    card.addEventListener('click', () => onEventClick(i));
+    list.appendChild(card);
+  });
+}
+
+function hasImage(idx) {
+  return images.some(img => img.eventIdx === idx);
+}
+
+function buildCardHTML(ev, idx, startTs) {
+  const elapsed = ((ev.timestamp - startTs) / 1000);
+  const elapsedStr = elapsed < 60 ? `+${elapsed.toFixed(1)}s` : `+${(elapsed/60).toFixed(1)}m`;
+  const timeStr = new Date(ev.timestamp).toLocaleTimeString();
+  const badge = getBadge(ev.type);
+  const num = `#${idx + 1}`;
+
+  let body = '';
+  switch (ev.type) {
+    case 'user_message':
+      body = `<div class="content-text">${esc(typeof ev.content === 'string' ? ev.content : JSON.stringify(ev.content))}</div>`;
+      break;
+    case 'assistant_thinking_message':
+      body = buildThinkingCard(ev);
+      break;
+    case 'assistant_message':
+      body = buildAssistantCard(ev);
+      break;
+    case 'tool_call':
+      body = buildToolCallCard(ev);
+      break;
+    case 'tool_result':
+      body = buildToolResultCard(ev);
+      break;
+    case 'environment_input':
+      body = buildEnvCard(ev);
+      break;
+    case 'agent_run_start':
+      body = buildRunStartCard(ev);
+      break;
+    case 'agent_run_end':
+      body = buildRunEndCard(ev);
+      break;
+    default:
+      body = `<div class="content-text">${esc(JSON.stringify(ev, null, 2).slice(0, 500))}</div>`;
+  }
+
+  return `
+    <div class="event-header">
+      <span class="event-num">${num}</span>
+      <span class="event-type-badge ${badge.cls}">${badge.label}</span>
+      <span class="event-elapsed">${elapsedStr}</span>
+      <span class="event-time">${timeStr}</span>
+    </div>
+    <div class="event-body">${body}</div>`;
+}
+
+function buildThinkingCard(ev) {
+  const dur = ev.thinkingDurationMs ? `${ev.thinkingDurationMs}ms` : '';
+  return `<div class="sub-card">
+    <div class="sub-card-header"><span class="sub-card-icon">🧠</span><span class="sub-card-label">Thought${dur ? ' for ' + dur : ''}</span></div>
+    <div class="sub-card-body">${simpleMarkdown(ev.content || '')}</div>
+  </div>`;
+}
+
+function buildAssistantCard(ev) {
+  let html = '';
+  if (ev.content) {
+    html += `<div class="content-text md">${simpleMarkdown(ev.content)}</div>`;
+  }
+  if (ev.toolCalls?.length) {
+    ev.toolCalls.forEach(tc => {
+      const fn = tc.function || {};
+      const name = fn.name || tc.name || '?';
+      let args = {};
+      try { args = typeof fn.arguments === 'string' ? JSON.parse(fn.arguments) : (fn.arguments || {}); } catch(e) {}
+      html += renderToolActionCard(name, args);
+    });
+  }
+  if (!html) html = `<span style="color:var(--text3);font-size:12px">Empty message (finishReason: ${esc(ev.finishReason || '?')})</span>`;
+  return html;
+}
+
+function buildToolCallCard(ev) {
+  const name = ev.name || '?';
+  let args = {};
+  try { args = typeof ev.arguments === 'string' ? JSON.parse(ev.arguments) : (ev.arguments || {}); } catch(e) {}
+  return renderToolActionCard(name, args);
+}
+
+function buildToolResultCard(ev) {
+  const name = ev.name || '?';
+  const elapsed = ev.elapsedMs != null ? `⏱ ${formatElapsed(ev.elapsedMs)}` : '';
+  const content = ev.content || {};
+  const success = content.success === true || content.status === 'success';
+  return renderToolResultSummary(name, content, elapsed, success);
+}
+
+// ── Smart tool rendering ──
+function renderToolActionCard(name, args) {
+  const info = getToolDisplay(name, args);
+  let html = `<div class="sub-card">
+    <div class="sub-card-header">
+      <span class="sub-card-icon">${info.icon}</span>
+      <div class="tool-action-label"><span class="action-text" title="${esc(info.label)}">${esc(info.label)}</span></div>
+    </div>`;
+  if (info.detail) {
+    html += `<div class="tool-action-detail">${simpleMarkdown(info.detail)}</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderToolResultSummary(name, content, elapsed, success) {
+  const info = getToolResultDisplay(name, content);
+  return `<div class="sub-card">
+    <div class="sub-card-header">
+      <span class="sub-card-icon">${info.icon}</span>
+      <div class="tool-action-label"><span class="action-text" title="${esc(info.label)}">${esc(info.label)}</span></div>
+      <span class="sub-card-right">${elapsed} ${success ? '<span class="check">✓</span>' : '<span style="color:var(--red)">✗</span>'}</span>
+    </div>
+    ${info.detail ? `<div class="tool-action-detail">${esc(info.detail)}</div>` : ''}
+  </div>`;
+}
+
+function getToolDisplay(name, args) {
+  switch (name) {
+    case 'browser_navigate':
+      return { icon: '🌐', label: `Navigate ${args.url || ''}`, detail: '' };
+    case 'browser_vision_control': {
+      const action = args.action || '';
+      const step = args.step || '';
+      return { icon: '🖥', label: `Browser ${action}`, detail: step || args.thought || '' };
+    }
+    case 'browser_go_back':
+      return { icon: '◀', label: 'Browser Go Back', detail: '' };
+    case 'browser_go_forward':
+      return { icon: '▶', label: 'Browser Go Forward', detail: '' };
+    case 'browser_refresh':
+      return { icon: '🔄', label: 'Browser Refresh', detail: '' };
+    case 'browser_get_markdown':
+      return { icon: '📄', label: 'Get Page Markdown', detail: '' };
+    case 'browser_get_url':
+      return { icon: '🔗', label: 'Get Current URL', detail: '' };
+    case 'browser_get_title':
+      return { icon: '📑', label: 'Get Page Title', detail: '' };
+    case 'browser_screenshot':
+      return { icon: '📸', label: 'Take Screenshot', detail: '' };
+    case 'web_search':
+      return { icon: '🔍', label: `Search: ${args.query || args.q || ''}`, detail: '' };
+    case 'read_file':
+      return { icon: '📖', label: `Read ${args.path || ''}`, detail: '' };
+    case 'write_file':
+      return { icon: '✏️', label: `Write ${args.path || ''}`, detail: '' };
+    case 'edit_file':
+      return { icon: '📝', label: `Edit ${args.path || ''}`, detail: '' };
+    case 'run_command':
+      return { icon: '⚙️', label: `Run: ${args.command || ''}`, detail: '' };
+    case 'run_script':
+      return { icon: '📜', label: `Script: ${(args.command || args.script || '').slice(0, 80)}`, detail: '' };
+    case 'list_directory':
+      return { icon: '📁', label: `List ${args.path || ''}`, detail: '' };
+    case 'search_files':
+      return { icon: '🔍', label: `Search files: ${args.pattern || args.query || ''}`, detail: args.path ? `in ${args.path}` : '' };
+    default: {
+      // Generic: show name + key args
+      const summary = Object.entries(args).slice(0, 3)
+        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v.slice(0, 60) : JSON.stringify(v).slice(0, 60)}`)
+        .join(', ');
+      return { icon: '🔧', label: name, detail: summary };
+    }
+  }
+}
+
+function getToolResultDisplay(name, content) {
+  switch (name) {
+    case 'browser_navigate': {
+      const msg = content.message || content.status || '';
+      const url = content.url || '';
+      return { icon: '🌐', label: `Navigate → ${url || 'done'}`, detail: msg };
+    }
+    case 'browser_vision_control': {
+      const action = content.action || '';
+      const ok = content.success ? 'Success' : 'Failed';
+      return { icon: '🖥', label: `Browser ${action} — ${ok}`, detail: '' };
+    }
+    case 'browser_get_markdown':
+      return { icon: '📄', label: 'Page Markdown', detail: (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 300) };
+    case 'browser_get_url':
+      return { icon: '🔗', label: `URL: ${typeof content === 'string' ? content : content.url || ''}`, detail: '' };
+    case 'browser_get_title':
+      return { icon: '📑', label: `Title: ${typeof content === 'string' ? content : content.title || ''}`, detail: '' };
+    case 'web_search':
+      return { icon: '🔍', label: 'Search Results', detail: (typeof content === 'string' ? content : JSON.stringify(content)).slice(0, 300) };
+    default: {
+      let summary = '';
+      try { summary = typeof content === 'string' ? content : JSON.stringify(content, null, 2); } catch(e) {}
+      if (summary.length > 300) summary = summary.slice(0, 300) + '…';
+      return { icon: '📦', label: name, detail: summary };
+    }
+  }
+}
+
+function formatElapsed(ms) {
+  if (ms < 1000) return ms + 'ms';
+  return (ms / 1000).toFixed(1) + 's';
+}
+
+function buildEnvCard(ev) {
+  const desc = ev.description || 'Environment Input';
+  const url = ev.metadata?.url || '';
+  const hasImg = Array.isArray(ev.content) && ev.content.some(c => c.type === 'image_url');
+  let html = `<div class="sub-card">
+    <div class="sub-card-header"><span class="sub-card-icon">${hasImg ? '📸' : '📥'}</span><span class="sub-card-label">${esc(desc)}</span></div>`;
+  if (url) html += `<div class="tool-args" style="margin-top:2px">${esc(url)}</div>`;
+  if (hasImg) html += `<div style="font-size:11px;color:var(--cyan);margin-top:4px">Click to view screenshot →</div>`;
+  html += `</div>`;
+  return html;
+}
+
+function buildRunStartCard(ev) {
+  return `<div class="sub-card">
+    <div class="sub-card-header"><span class="sub-card-icon">🚀</span><span class="sub-card-label">Agent Run Started</span></div>
+    <div class="sub-card-body">${esc(ev.agentName || '')} • ${esc(ev.model || '')} (${esc(ev.provider || '')})</div>
+  </div>`;
+}
+
+function buildRunEndCard(ev) {
+  const dur = ev.elapsedMs ? `${(ev.elapsedMs/1000).toFixed(1)}s` : '';
+  return `<div class="sub-card">
+    <div class="sub-card-header"><span class="sub-card-icon">🏁</span><span class="sub-card-label">Agent Run Ended</span>
+      <span class="sub-card-right">${dur}</span>
+    </div>
+    <div class="sub-card-body">Status: ${esc(ev.status || '?')} • Iterations: ${ev.iterations ?? '?'}</div>
+  </div>`;
+}
+
+function getBadge(type) {
+  const map = {
+    user_message: { label: 'User', cls: 'badge-user' },
+    assistant_thinking_message: { label: 'Thinking', cls: 'badge-thinking' },
+    assistant_message: { label: 'Assistant', cls: 'badge-assistant' },
+    tool_call: { label: 'Tool Call', cls: 'badge-tool-call' },
+    tool_result: { label: 'Tool Result', cls: 'badge-tool-result' },
+    environment_input: { label: 'Environment', cls: 'badge-env' },
+    agent_run_start: { label: 'Run Start', cls: 'badge-run' },
+    agent_run_end: { label: 'Run End', cls: 'badge-run' },
+  };
+  return map[type] || { label: type.replace(/_/g, ' '), cls: 'badge-run' };
+}
+
+// ── Event click → show associated image + clicked event details ──
+function onEventClick(idx) {
+  setActiveEvent(idx);
+  // Find closest image at or before this event
+  let imgIdx = -1;
+  for (let i = images.length - 1; i >= 0; i--) {
+    if (images[i].eventIdx <= idx) { imgIdx = i; break; }
+  }
+  if (imgIdx >= 0) {
+    currentImageIdx = imgIdx;
+    renderImageViewer(images[imgIdx], idx);
+  } else if (images.length > 0) {
+    // No image before this event; show first image but with clicked event details
+    currentImageIdx = 0;
+    renderImageViewer(images[0], idx);
+  }
+}
+
+function setActiveEvent(idx) {
+  activeEventIdx = idx;
+  document.querySelectorAll('.event-card').forEach(c => c.classList.toggle('active', +c.dataset.idx === idx));
+}
+
+// ── Image viewer ──
+// detailEventIdx: which event to show details for (defaults to image's own event)
+function selectImage(imgIdx, detailEventIdx) {
+  if (imgIdx < 0 || imgIdx >= images.length) return;
+  currentImageIdx = imgIdx;
+  const img = images[imgIdx];
+  const detailIdx = detailEventIdx != null ? detailEventIdx : img.eventIdx;
+  renderImageViewer(img, detailIdx);
+  setActiveEvent(detailIdx);
+}
+
+function renderImageViewer(img, detailEventIdx) {
+  const rp = $('#rightPanel');
+  rp.className = 'right-panel';
+  const timeStr = new Date(img.timestamp).toLocaleTimeString();
+
+  // Build details for the specified event
+  const details = buildEventDetails(detailEventIdx);
+
+  rp.innerHTML = `
+    <div class="browser-chrome">
+      <div class="browser-header">
+        <span class="browser-icon">🌐</span>
+        <span class="browser-label">Browser</span>
+        <span class="browser-time">${timeStr}</span>
+      </div>
+      <div class="browser-url-bar">
+        <span class="url-lock">🔒</span>
+        <span class="url-text" title="${esc(img.url)}">${esc(img.url || 'about:blank')}</span>
+      </div>
+    </div>
+    <div class="image-area">
+      <img src="${img.imgSrc}" alt="Screenshot">
+    </div>
+    <div class="details-panel">${details}</div>
+    <div class="navigator">
+      <button class="nav-btn" id="navPrev" ${currentImageIdx <= 0 ? 'disabled' : ''}>◀</button>
+      <span class="nav-counter">${currentImageIdx + 1} of ${images.length}</span>
+      <button class="nav-btn" id="navNext" ${currentImageIdx >= images.length-1 ? 'disabled' : ''}>▶</button>
+    </div>`;
+
+  $('#navPrev')?.addEventListener('click', () => navigateImage(-1));
+  $('#navNext')?.addEventListener('click', () => navigateImage(1));
+}
+
+function navigateImage(dir) {
+  const next = currentImageIdx + dir;
+  if (next < 0 || next >= images.length) return;
+  selectImage(next);
+  scrollToEvent(images[next].eventIdx);
+}
+
+function scrollToEvent(idx) {
+  const card = document.querySelector(`.event-card[data-idx="${idx}"]`);
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function buildEventDetails(eventIdx) {
+  const ev = events[eventIdx];
+  if (!ev) return '<div class="detail-section"><div class="detail-label">No event</div></div>';
+
+  const badge = getBadge(ev.type);
+  let html = `<div class="detail-section">
+    <div class="detail-label"><span class="icon">#${eventIdx + 1}</span> ${badge.label}</div>`;
+
+  switch (ev.type) {
+    case 'user_message':
+      html += `<div class="detail-content">${esc(typeof ev.content === 'string' ? ev.content : JSON.stringify(ev.content))}</div>`;
+      break;
+    case 'assistant_thinking_message':
+      html += `<div class="detail-content md">${simpleMarkdown(ev.content || '')}</div>`;
+      break;
+    case 'assistant_message':
+      if (ev.content) html += `<div class="detail-content md">${simpleMarkdown(ev.content)}</div>`;
+      if (ev.toolCalls?.length) {
+        ev.toolCalls.forEach(tc => {
+          const fn = tc.function || {};
+          const name = fn.name || tc.name || '?';
+          let argsStr = '';
+          try { argsStr = typeof fn.arguments === 'string' ? fn.arguments : JSON.stringify(fn.arguments); } catch(e) {}
+          html += `<div style="margin-top:6px"><span style="color:var(--cyan);font-weight:600">${esc(name)}</span> <span class="tool-args">${esc(argsStr)}</span></div>`;
+        });
+      }
+      break;
+    case 'tool_call': {
+      let argsStr = '';
+      try { argsStr = typeof ev.arguments === 'string' ? ev.arguments : JSON.stringify(ev.arguments, null, 2); } catch(e) {}
+      html += `<div class="detail-content"><span style="color:var(--cyan);font-weight:600">${esc(ev.name || '')}</span><br><span class="tool-args">${esc(argsStr)}</span></div>`;
+      break;
+    }
+    case 'tool_result': {
+      const elapsed = ev.elapsedMs != null ? ` (${ev.elapsedMs}ms)` : '';
+      let contentStr = '';
+      try { contentStr = typeof ev.content === 'string' ? ev.content : JSON.stringify(ev.content, null, 2); } catch(e) {}
+      if (contentStr.length > 800) contentStr = contentStr.slice(0, 800) + '…';
+      html += `<div class="detail-content"><span style="color:var(--cyan);font-weight:600">${esc(ev.name || '')}${elapsed}</span><br>${esc(contentStr)}</div>`;
+      break;
+    }
+    case 'environment_input': {
+      const url = ev.metadata?.url || '';
+      html += `<div class="detail-content">${esc(ev.description || 'Environment Input')}${url ? '<br>' + esc(url) : ''}</div>`;
+      break;
+    }
+    case 'agent_run_start':
+      html += `<div class="detail-content">${esc(ev.agentName || '')} • ${esc(ev.model || '')} (${esc(ev.provider || '')})</div>`;
+      break;
+    case 'agent_run_end': {
+      const dur = ev.elapsedMs ? `${(ev.elapsedMs/1000).toFixed(1)}s` : '';
+      html += `<div class="detail-content">Status: ${esc(ev.status || '?')} • Iterations: ${ev.iterations ?? '?'}${dur ? ' • ' + dur : ''}</div>`;
+      break;
+    }
+    default:
+      html += `<div class="detail-content">${esc(JSON.stringify(ev, null, 2).slice(0, 500))}</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function showEmptyRight() {
+  const rp = $('#rightPanel');
+  rp.className = 'right-panel empty';
+  rp.innerHTML = `<div class="empty-msg"><span class="icon">🖼️</span>No screenshots in this session</div>`;
+}
+
+// ── Utilities ──
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function simpleMarkdown(text) {
+  if (!text) return '';
+  let s = esc(text);
+  s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/^- (.+)$/gm, '• $1');
+  return s;
+}
+
+// ── Keyboard nav ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') navigateImage(-1);
+  if (e.key === 'ArrowRight') navigateImage(1);
+});
+
+// ── Resizable left panel ──
+(() => {
+  const handle = $('#resizeHandle');
+  const left = $('.left-panel');
+  let dragging = false, startX, startW;
+  handle.addEventListener('mousedown', e => {
+    dragging = true; startX = e.clientX; startW = left.offsetWidth;
+    handle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = Math.max(280, Math.min(window.innerWidth * 0.6, startW + e.clientX - startX));
+    left.style.width = w + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('active');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+</script>
+</body>
+</html>
