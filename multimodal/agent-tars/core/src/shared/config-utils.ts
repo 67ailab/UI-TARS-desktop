@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2025 Bytedance, Inc. and its affiliates.
  * SPDX-License-Identifier: Apache-2.0
@@ -23,6 +22,10 @@ export const AGENT_TARS_DEFAULT_OPTIONS: AgentTARSOptions = {
     type: 'local',
     headless: false,
     control: 'hybrid',
+    defaultViewport: {
+      width: 1280,
+      height: 800,
+    },
   },
   mcpImpl: 'in-memory',
   mcpServers: {},

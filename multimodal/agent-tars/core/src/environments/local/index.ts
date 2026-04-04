@@ -54,6 +54,9 @@ export class AgentTARSLocalEnvironment extends AgentTARSBaseEnvironment {
     this.browserManager.lastLaunchOptions = {
       headless: this.options.browser?.headless,
       cdpEndpoint: this.options.browser?.cdpEndpoint,
+      ...(this.options.browser?.defaultViewport && {
+        defaultViewport: this.options.browser?.defaultViewport,
+      }),
     };
 
     this.workspacePathResolver = new WorkspacePathResolver({ workspace });
@@ -170,6 +173,9 @@ export class AgentTARSLocalEnvironment extends AgentTARSBaseEnvironment {
         enableAdBlocker: false,
         launchOptions: {
           headless: this.options.browser?.headless,
+          ...(this.options.browser?.defaultViewport && {
+            defaultViewport: this.options.browser.defaultViewport,
+          }),
         },
       }),
       filesystem: filesystemModule.createServer({
@@ -415,6 +421,9 @@ export class AgentTARSLocalEnvironment extends AgentTARSBaseEnvironment {
         await this.browserManager.launchBrowser({
           headless: this.options.browser?.headless,
           cdpEndpoint: this.options.browser?.cdpEndpoint,
+          ...(this.options.browser?.defaultViewport && {
+            defaultViewport: this.options.browser.defaultViewport,
+          }),
         });
       }
     } else {

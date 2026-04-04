@@ -50,6 +50,16 @@ export interface AgentTARSBrowserOptions {
    * CDP endpoint to connect to, for example "http://127.0.0.1:9222/json/version
    */
   cdpEndpoint?: string;
+
+  /**
+   * The viewport dimensions
+   * @property {number} width - Viewport width in pixels
+   * @property {number} height - Viewport height in pixels
+   */
+  defaultViewport?: {
+    width: number;
+    height: number;
+  };
 }
 
 /**
