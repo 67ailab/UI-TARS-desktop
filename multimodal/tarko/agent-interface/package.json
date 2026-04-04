@@ -25,7 +25,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@agent-infra/logger": "0.0.2-beta.2",
+    "@agent-infra/logger": "workspace:*",
     "@tarko/llm-client": "workspace:*",
     "@tarko/model-provider": "workspace:*"
   },

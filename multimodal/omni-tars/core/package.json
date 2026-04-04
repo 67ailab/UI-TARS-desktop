@@ -29,7 +29,7 @@
   "dependencies": {
     "@tarko/agent": "workspace:*",
     "@tarko/agent-interface": "workspace:*",
-    "@agent-infra/logger": "0.0.2-beta.2",
+    "@agent-infra/logger": "workspace:*",
     "@agent-infra/mcp-client": "1.1.6-beta.3",
     "@tarko/model-provider": "workspace:*"
   },

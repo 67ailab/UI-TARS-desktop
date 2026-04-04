@@ -35,7 +35,7 @@
   "dependencies": {
     "@gui-agent/shared": "workspace:*",
     "@agent-infra/browser": "0.1.1",
-    "@agent-infra/logger": "0.0.2-beta.2",
+    "@agent-infra/logger": "workspace:*",
     "@agent-infra/sandbox": "0.0.6",
     "@agent-infra/media-utils": "0.1.5"
   },

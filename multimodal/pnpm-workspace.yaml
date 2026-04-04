@@ -11,3 +11,5 @@ packages:
   - 'websites/*'
   # omni-tars agent
   - 'omni-tars/*'
+  # shared infra packages from root workspace
+  - '../packages/agent-infra/logger'

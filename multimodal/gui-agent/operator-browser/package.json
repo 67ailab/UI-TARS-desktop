@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@agent-infra/browser": "0.1.1",
-    "@agent-infra/logger": "0.0.2-beta.2",
+    "@agent-infra/logger": "workspace:*",
     "@agent-infra/puppeteer-enhance": "0.1.6",
     "@gui-agent/shared": "workspace:*"
   },
