@@ -10,18 +10,26 @@ describe('Browser Control Validator', () => {
     expect(result).toBe('hybrid');
   });
 
-  it('should enforce browser-use-only mode for unsupported providers', () => {
-    const result = validateBrowserControlMode('openai', 'hybrid', logger);
-    expect(result).toBe('dom');
+  it('should return requested mode for any provider', () => {
+    expect(validateBrowserControlMode('openai', 'hybrid', logger)).toBe('hybrid');
+    expect(validateBrowserControlMode('openai', 'visual-grounding', logger)).toBe(
+      'visual-grounding',
+    );
+    expect(validateBrowserControlMode('anthropic', 'hybrid', logger)).toBe('hybrid');
   });
 
-  it('should enforce browser-use-only mode for undefined provider', () => {
+  it('should return requested mode for undefined provider', () => {
     const result = validateBrowserControlMode(undefined, 'visual-grounding', logger);
-    expect(result).toBe('dom');
+    expect(result).toBe('visual-grounding');
   });
 
-  it('should not change browser-use-only mode regardless of provider', () => {
+  it('should return dom mode when explicitly requested', () => {
     const result = validateBrowserControlMode('unknown', 'dom', logger);
     expect(result).toBe('dom');
+  });
+
+  it('should default to hybrid mode when no mode is specified', () => {
+    const result = validateBrowserControlMode('openai', undefined, logger);
+    expect(result).toBe('hybrid');
   });
 });
